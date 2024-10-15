@@ -1,35 +1,77 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
+import { useEffect, useState } from 'react';
 import './App.css'
+import io from 'socket.io-client';
+
+const socket = io('http://localhost:3000');
 
 function App() {
-  const [count, setCount] = useState(0)
+
+  const [message, setMessage] = useState('');
+  const [messages, setMessages] = useState([]);
+  const [username, setUsername] = useState('');
+  const [inputUsername, setInputUsername] = useState('');
+
+  useEffect(() => {
+    // Listen for messages from the server
+    socket.on('chatMessage', (msg) => {
+      setMessages((prevMessages) => [...prevMessages, msg]);
+    });
+
+    // Listen for chat history from the server
+    socket.on('chatHistory', (messages) => {
+      setMessages(messages);  // Load the initial chat history
+    });
+
+    // Clean up the connection when the component unmounts
+    return () => {
+      socket.off('chatMessage');
+      socket.off('chatHistory');
+    };
+  }, []);
+
+  const handleUsernameSubmit = () => {
+    setUsername(inputUsername);
+    socket.emit('setUsername', inputUsername);  // Send the username to the server
+  };
+
+  const sendMessage = () => {
+    socket.emit('chatMessage', message);  // Send the message to the server
+    setMessage('');  // Clear the input field
+  };
 
   return (
-    <>
-      <div>
-        <a href="https://vitejs.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.jsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+    <div>
+      {!username ? (
+        <div>
+          <input
+            type="text"
+            value={inputUsername}
+            onChange={(e) => setInputUsername(e.target.value)}
+            placeholder="Enter your username"
+          />
+          <button onClick={handleUsernameSubmit}>Submit Username</button>
+        </div>
+      ) : (
+        <div>
+          <ul>
+            {messages.map((msg, index) => (
+              <li key={index}>
+                <strong>{msg.username}: </strong>{msg.message}
+              </li>
+            ))}
+          </ul>
+          <input
+            type="text"
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            placeholder="Type a message..."
+          />
+          <button onClick={sendMessage}>Send</button>
+        </div>
+      )}
+    </div>
+  );
+
 }
 
 export default App

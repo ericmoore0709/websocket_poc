@@ -7,7 +7,6 @@
 var app = require('../app');
 var debug = require('debug')('backend:server');
 var http = require('http');
-const socketIo = require('socket.io');
 
 /**
  * Get port from environment and store in Express.
@@ -23,18 +22,30 @@ app.set('port', port);
 var server = http.createServer(app);
 
 // Socket.IO setup
-const io = socketIo(server);
+const io = require('socket.io')(server, {
+  cors: {
+    origin: 'http://localhost:5173',
+    methods: ['GET', 'POST'],
+    credentials: true
+  }
+});
 
-// Handle WebSocket connection
 io.on('connection', (socket) => {
-  console.log('A user connected');
+  // Store the username on the socket object for easy access later
+  socket.on('setUsername', (username) => {
+    socket.username = username;
+    console.log(`${username} has connected`);
+  });
 
+  // When a message is received, include the username
   socket.on('chatMessage', (msg) => {
-    io.emit('chatMessage', msg);  // Broadcast message to all connected clients
+    console.log(`Message received from ${socket.username}: ${msg}`);
+    // Broadcast message along with the username
+    io.emit('chatMessage', { username: socket.username, message: msg });
   });
 
   socket.on('disconnect', () => {
-    console.log('User disconnected');
+    console.log(`${socket.username} has disconnected`);
   });
 });
 

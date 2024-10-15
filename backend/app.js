@@ -3,10 +3,22 @@ var express = require('express');
 var path = require('path');
 var cookieParser = require('cookie-parser');
 var logger = require('morgan');
+const cors = require('cors');
 
 var indexRouter = require('./routes/index');
 
 var app = express();
+
+// CORS configuration
+const corsOptions = {
+  origin: 'http://localhost:5173',  // Allow only your Vite frontend
+  methods: ['GET', 'POST'],         // Allow only specific HTTP methods
+  credentials: true,                // Allow cookies or authentication headers
+};
+
+// Use CORS middleware
+app.use(cors(corsOptions));
+app.use(cors()); // This allows requests from any origin
 
 app.use(logger('dev'));
 app.use(express.json());
